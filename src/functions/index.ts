@@ -29,16 +29,15 @@ export const reduceSales = (results: any[], quantity: number) => {
             break;
         }
     }
-
     return true;
 }
 
-const updateDB = async (item: { id: number, quantity: number }) => {
+const updateDB = (item: { id: number, quantity: number }) => {
     try {
-        let query = `UPDATE items SET quantity ="${item.quantity}" WHERE id="${item.id}"`;
-        await QueryDB(query);
+        let query = `UPDATE items SET quantity = ? WHERE id = ?`;
+        QueryDB(query, [`${item.quantity}`, `${item.id}`]);
     } catch (error: any) {
-        console.log("Error updating items")
+        console.log("Error updating stock")
         console.log(error.message)
     }
 }

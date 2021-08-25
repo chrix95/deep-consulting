@@ -22,8 +22,8 @@ const Connect = async () => new Promise<mysql.Connection>((resolve, reject) => {
     })
 });
 
-const Query = async (connection: mysql.Connection, query: string) => new Promise((resolve, reject) => {
-    connection.query(query, connection, (error: any, result: any) => {
+const Query = async (connection: mysql.Connection, query: string, values?: string[]) => new Promise((resolve, reject) => {
+    connection.query(query, values, (error: any, result: any) => {
         if (error) {
             reject(error);
             return;
@@ -33,14 +33,13 @@ const Query = async (connection: mysql.Connection, query: string) => new Promise
     });
 })
 
-const QueryDB = async (queryString: string): Promise<DBResult> => {
+const QueryDB = async (queryString: string, values?: string[]): Promise<DBResult> => {
     const connection =  await Connect();
     try {
-        const results = await Query(connection, queryString)
+        const results = await Query(connection, queryString, values)
             .then(results => results as Result[])
             .finally(() => connection.end())
-
-        return {status: true, results }; 
+        return { status: true, results }; 
     } catch (error: any) {
         return { status: false, message: error.message }
     }

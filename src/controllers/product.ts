@@ -18,9 +18,9 @@ const createItem = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     try {
-        let query = `INSERT INTO items (name, quantity, expiry) VALUES ("${item.name}", "${item.quantity}", "${item.expiry}")`;
-    
-        const response = await QueryDB(query);
+        let query = `INSERT INTO items (name, quantity, expiry) VALUES (?, ?, ?)`;
+        let values = [`${item.name}`, `${item.quantity}`, `${item.expiry}`];
+        const response = await QueryDB(query, values);
         if (response.status) {
             return res.status(200).json({});
         }
@@ -48,12 +48,11 @@ const getItemQuantity = async (req: Request, res: Response, next: NextFunction) 
 
     
     try {
-        let query = `SELECT quantity, expiry FROM items WHERE name = "${name}" AND quantity > 0 AND expiry > "${new Date().getTime()}" ORDER BY expiry`;
-        
-        const response = await QueryDB(query);
+        let query = `SELECT quantity, expiry FROM items WHERE name = ? AND quantity > 0 AND expiry > "${new Date().getTime()}" ORDER BY expiry`;
+        const response = await QueryDB(query, [`${name}`]);
         if (response.status) {
             const results: any = response.results
-            // check if the item quantity doesn't exist
+            // check if the requested item exist
             if (results.length === 0) {
                 return res.status(200).json({
                     quantity: 0,
@@ -91,13 +90,14 @@ const sellItemQuantity = async (req: Request, res: Response, next: NextFunction)
     });
 
     try {
-        let query = `SELECT * FROM items WHERE name = "${item.name}" AND quantity > 0 AND expiry > "${new Date().getTime()}" ORDER BY expiry`;
+        let query = `SELECT * FROM items WHERE name = ? AND quantity > 0 AND expiry > "${new Date().getTime()}" ORDER BY expiry`;
         
-        const response = await QueryDB(query);
+        const response = await QueryDB(query, [`${item.name}`]);
         if (response.status) {
             const results: any = response.results
             const totalQuantity = results.reduce((accItem: number, item: { quantity: number, expiry: number }) => accItem += item.quantity, 0)
             if (results.length > 0) {
+                // check if the available stock is enough for the sell request
                 if (item.quantity > totalQuantity) {
                     return res.status(409).json({
                         message: `${item.name} sell cannot exceed ${item.quantity}`
@@ -106,15 +106,17 @@ const sellItemQuantity = async (req: Request, res: Response, next: NextFunction)
                 res.status(200).json({})
                 // reduce the item in the database based on the required quantity
                 reduceSales(results, item.quantity)
+            } else {
+                return res.status(200).json({
+                    quantity: 0,
+                    validTill: null
+                })
             }
-            return res.status(200).json({
-                quantity: 0,
-                validTill: null
-            })
+        } else {
+            return res.status(500).json({
+                message: response.message
+            });
         }
-        return res.status(500).json({
-            message: response.message
-        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message
