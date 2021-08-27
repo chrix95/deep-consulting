@@ -9,7 +9,8 @@ router.use(express.urlencoded({ extended: true }));
 router.use(express.json());
 
 router.use("/", productRoutes);
-router.get("*", (req: Request, res: Response) => res.redirect("/"));
+router.get("/", (req: Request, res: Response) => res.status(200).send("Health check completed"));
+router.get("*", (req: Request, res: Response) => res.status(404).send("404 - Not found"));
 
 // Clear expired items from the database every 5 minute
 setInterval(() => {
